@@ -5,18 +5,28 @@
 #include "Shift.h"
 #include "Day.h"
 #include "Student.h"
-#define DEBUG 0
+
+#include <xlslib.h>
+#include <xlslib/common.h>
+
+
+#define XLS_TEST 1
+
+#define DEBUG XLS_TEST
 
 using namespace std;
-
+using namespace xlslib_core;
 
 unsigned char promptNew(void);
 unsigned char promptMain(void);
 int main() {
 
-    #if(DEBUG == 1)
+    #if(DEBUG == XLS_TEST)
     cout << "Hello, World!" << endl;
-
+    //Test .xls capabilities
+    workbook wb;
+    worksheet* sh = wb.sheet("sheet");
+    wb.Dump("C:/temp/wb.xls");
     #else
     while(promptNew()!='c')
     {
