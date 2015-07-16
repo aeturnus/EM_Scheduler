@@ -1,14 +1,12 @@
 cmake_minimum_required(VERSION 3.2)
 project(EM_Scheduler)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -static")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#find_library(ICONV_LIB NAMES iconv PATHS C:/MinGW/bin)
 set(SOURCE_FILES main.cpp)
-#include_directories(C:\libs\include)
-#link_directories(C:\libs\lib)
-#add_library(libxls libxls.a )
-
-include_directories(C:/libs/xlslib/include)
-link_directories(C:/libs/xlslib/lib)
-add_executable(EM_Scheduler ${SOURCE_FILES} Date.cpp Date.h Student.cpp Student.h Shift.cpp Shift.h Day.cpp Day.h)
-target_link_libraries(EM_Scheduler C:/libs/xlslib/lib/libxls.a )
+include_directories(C:/lib/xlslib/include)
+link_directories(C:/lib/xlslib/lib)
+#include_directories(/lib/xlslib/include)
+add_executable(EM_Scheduler ${SOURCE_FILES} Date.cpp Date.h Student.cpp Student.h Shift.cpp Shift.h Day.cpp Day.h Parser.cpp Parser.h Prompt.h Prompt.h Prompt.cpp)
+target_link_libraries(EM_Scheduler C:/lib/xlslib/lib/libxls.a)
+#target_link_libraries(EM_Scheduler /lib/xlslib/lib/libxls.so)
