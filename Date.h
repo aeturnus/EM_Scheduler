@@ -45,6 +45,7 @@ public:
     Date();
     ~Date();
     Date& operator=(Date& other);
+    bool operator==(Date &rhs);
 //    Date operator+(const Date& other);
 //    Date operator-(const Date& other);
 

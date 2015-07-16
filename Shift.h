@@ -13,9 +13,9 @@ class Shift
 {
 public:
 
-    Shift(Date* date,std::string shiftName);
+    Shift();
     ~Shift();
-
+    void init(std::string shiftName, Date* datePtr);
     //Sets the name of the shift
     //In:: input: the visible name of this shift
     void setName(std::string input);
@@ -25,7 +25,7 @@ public:
     void assign(Student* taker);
 
     //Unassigns this shift
-    void unassign(void);
+    void unassign();
 
     //Blocks off this shift
     //In:: Reason: string to show why it's blocked off
@@ -34,6 +34,11 @@ public:
     //Unblocks this shift
     void unblock(void);
 
+    //getter for manual
+    bool isManual(void);
+
+    //Manual setter
+    void setManual(bool input);
     //Everyone love's a toString!
     std::string toString(void);
 protected:
@@ -42,6 +47,7 @@ private:
     std::string name;           //The shift's name
     std::string blockReason;    //Visible reason for the block
     bool blocked;               //Determines if the shift is blocked
+    bool manual;                //Determines if it's a manual change.
     Student* assocStudent;      //Pointer to the student who has this shift. Equals nullptr if not taken
     Date* assocDate;            //Pointer to the date that it is attached to
 };

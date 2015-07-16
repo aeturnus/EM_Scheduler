@@ -26,11 +26,27 @@ Date::~Date()
 Date& Date::operator=(Date &other)
 {
     //setDate(other.getNumDay(),other.getNumMonth(),other.getNumYear());
+    if(this == &other)
+        return *this;
     day = other.getNumDay();
     month = other.getNumMonth();
     year = other.getNumYear();
     weekday = other.getNumDayOfWeek();
     return *this;
+}
+
+bool Date::operator==(Date &rhs)
+{
+    if(this == &rhs)
+        return true;
+    if(day != rhs.day)
+        return false;
+    if(month != rhs.month)
+        return false;
+    if(year != rhs.year)
+        return false;
+    //Weekday is assumed to be properly calculated
+    return true;
 }
 
 std::string Date::toString(void)
@@ -63,7 +79,7 @@ void Date::calcDayOfWeek()
     #endif
 
     #ifdef GAUSS
-    //Yeah, Zeller's algorithm wasn't working out too well. I used Gauss's algorithm (on Wikipedia) then expanded on it to provide the rest of the year
+    //Yeah... Zeller's algorithm wasn't working out too well. I used Gauss's algorithm (on Wikipedia) then expanded on it to provide the rest of the year. Note the lack of floating point
     unsigned int firstday =(1 + 5*((year-1)%4) + 4*((year-1)%100) + 6*((year-1)%400) )%7; //Gauss's algorithm calculates the first day of the year
     unsigned int daysfromfirst = 0;
     //Compensate for the rest of the year

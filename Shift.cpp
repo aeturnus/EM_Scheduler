@@ -9,16 +9,22 @@
 #include "Date.h"
 #include "Student.h"
 
-Shift::Shift(Date *date, std::string shiftName)
+Shift::Shift()
 {
-    assocDate = date;
-    setName(shiftName);
-    unassign();
-    unblock();
+
 }
 
 Shift::~Shift()
 {
+
+}
+
+void Shift::init(std::string shiftName, Date* datePtr)
+{
+    assocDate = datePtr;
+    setName(shiftName);
+    unassign();
+    unblock();
 }
 
 void Shift::setName(std::string input)
@@ -49,9 +55,17 @@ void Shift::unblock()
     blocked = false;
 }
 
+bool Shift::isManual()
+{
+    return manual;
+}
+void Shift::setManual(bool input)
+{
+    manual = input;
+}
 std::string Shift::toString(void)
 {
     std::stringstream sstream;
-    sstream<<(blocked?blockReason:name)<<": "<<(assocStudent==nullptr?"Open":assocStudent->getName())<<std::endl;
+    sstream<<assocDate->toString()<<"\n"<<(blocked?blockReason:name)<<": "<<(assocStudent==nullptr?"Open":assocStudent->getName())<<std::endl;
     return sstream.str();
 }

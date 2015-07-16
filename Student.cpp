@@ -5,9 +5,8 @@
 #include <sstream>
 #include "Student.h"
 
-Student::Student(std::string inName)
+Student::Student()
 {
-    setName(inName);
     shiftCount = 0;
 }
 
@@ -44,10 +43,19 @@ std::string Student::getName(void)
     return name;
 }
 
+void Student::setID(unsigned int input)
+{
+    id = input;
+}
+unsigned int Student::getID(void)
+{
+    return id;
+}
+
 std::string Student::toString()
 {
     std::stringstream sstream;
-    sstream<<name<<": "<<std::dec<<shiftCount<<(shiftCount==1?" shift":" shifts")<<std::endl;
+    sstream<<std::dec<<"["<<id<<"]"<<name<<": "<<std::dec<<shiftCount<<(shiftCount==1?" shift":" shifts")<<std::endl;
     return sstream.str();
 }
 
