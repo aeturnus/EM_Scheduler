@@ -27,6 +27,9 @@ public:
     void setID(unsigned int input);
     unsigned int getID(void);
 
+    unsigned int getShiftCount(void);
+    void setShiftCount(unsigned int count);
+
     std::string toString(void);
 protected:
 private:

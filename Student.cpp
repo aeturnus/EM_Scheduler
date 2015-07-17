@@ -19,7 +19,6 @@ bool Student::assign(void)
 {
     if(shiftCount < MAX_SHIFTS)
     {
-        shiftCount++;
         return true;
     }
     return false;
@@ -50,6 +49,16 @@ void Student::setID(unsigned int input)
 unsigned int Student::getID(void)
 {
     return id;
+}
+
+unsigned int Student::getShiftCount()
+{
+    return shiftCount;
+}
+
+void Student::setShiftCount(unsigned int count)
+{
+    shiftCount = count;
 }
 
 std::string Student::toString()

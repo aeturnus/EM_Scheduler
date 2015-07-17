@@ -22,7 +22,7 @@ public:
 
     //Assigns a student this shift
     //In:: taker:pointer to student who takes the shift
-    void assign(Student* taker);
+    bool assign(Student* taker);
 
     //Unassigns this shift
     void unassign();
@@ -39,6 +39,12 @@ public:
 
     //Manual setter
     void setManual(bool input);
+
+    Student* student(void);
+    Date* date(void);
+
+    int getID(void);
+
     //Everyone love's a toString!
     std::string toString(void);
 protected:

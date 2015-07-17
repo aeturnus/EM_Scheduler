@@ -272,3 +272,18 @@ int Date::daysFromEpoch(Date &date)
     }
     return output;
 }
+
+unsigned int Date::weekdayOfMonth()
+{
+    if(day >= 1 && day <8)
+        return 1;
+    if(day >=8 && day < 15)
+        return 2;
+    if(day >=15 && day < 22)
+        return 3;
+    if(day >= 22 && day < 29)
+        return 4;
+    if(day >= 29)
+        return 5;
+    return 0;
+}

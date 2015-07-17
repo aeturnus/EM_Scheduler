@@ -25,6 +25,8 @@ void Shift::init(std::string shiftName, Date* datePtr)
     setName(shiftName);
     unassign();
     unblock();
+    manual = false;
+
 }
 
 void Shift::setName(std::string input)
@@ -32,22 +34,35 @@ void Shift::setName(std::string input)
     name = input;
 }
 
-void Shift::assign(Student *taker)
+bool Shift::assign(Student *taker)
 {
+    if(manual)
+    {
+        return false;
+    }
     if(taker->assign())
+    {
         assocStudent = taker;
+        return true;
+    }
     else
-        std::cout<<taker->getName()<<" already has "<<std::dec<<Student::MAX_SHIFTS<<" shifts"<<std::endl;
+    {
+        std::cout << taker->getName() << " already has " << std::dec << Student::MAX_SHIFTS << " shifts" << std::endl;
+        return false;
+    }
 }
 
 void Shift::unassign()
 {
+    assocStudent->unassign;
     assocStudent = nullptr;
 }
 
 void Shift::block(std::string reason)
 {
+    blockReason = reason;
     blocked = true;
+    unassign();
 }
 
 void Shift::unblock()
@@ -63,6 +78,22 @@ void Shift::setManual(bool input)
 {
     manual = input;
 }
+
+Student* Shift::student(void)
+{
+    return assocStudent;
+}
+
+Date* Shift::date(void)
+{
+    return assocDate;
+}
+
+int Shift::getID(void)
+{
+    return id;
+}
+
 std::string Shift::toString(void)
 {
     std::stringstream sstream;
