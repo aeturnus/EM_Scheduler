@@ -28,7 +28,6 @@ bool Student::unassign()
 {
     if(shiftCount < 0)
         return false;
-    shiftCount--;
     return true;
 }
 

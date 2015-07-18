@@ -10,6 +10,8 @@
 #include "Day.h"
 #include "Student.h"
 
+#include "Scheduler.h"
+
 #include <xlslib.h>
 #include <xlslib/common.h>
 
@@ -21,7 +23,7 @@
 
 #define XLS_TEST 1
 #define TEST 2
-#define DEBUG 0
+#define DEBUG TEST
 
 using namespace std;
 using namespace xlslib_core;
@@ -89,11 +91,12 @@ void inline newcfg()
     numshifts = numdates * numdisshifts;
     shiftlist = new Shift[numshifts]();
     //Link the shifts to dates
+    unsigned int times[][2] = {{0,0},{0,0},{0,0},{0,0},{0,0}};
     for(int i = 0; i<numdates; i++)                                 //For every date
     {
         for(int j = 0; j<numdisshifts; j++)                            //For each particular shift
         {
-            shiftlist[i*numdisshifts + j].init(shiftnames[j],&datelist[i]);
+            shiftlist[i*numdisshifts + j].init(j,shiftnames[j],&datelist[i],times[j][0],times[j][1]);
         }
     }
 
@@ -309,9 +312,26 @@ int main()
     #endif
     cout <<"Dumped"<<endl;
     #elif(DEBUG == TEST)
-    Date test;
-    test.setDate(29,11,2015);
-    cout<<test.toString()<<"\nWeekday of Month: "<<test.weekdayOfMonth()<<endl;
+    cout<<"Hello world"<<endl;
+
+    Scheduler scheduler;
+    Date dateStart,dateEnd;
+    dateStart.setDate(1,Date::JAN,2015);
+    dateEnd.setDate(3,Date::JAN,2015);
+
+    string shiftnames[5] = {"Shift 1","Shift 2","Shift 3","Shift 4","Shift 5"};
+    unsigned int shifttimes[5][2] = {{0,2},{2,4},{4,6},{6,8},{8,10}};
+    string studentnames[6] = {"Student 1","Student 2","Student 3","Student 4","Student 5","Student 6"};
+    scheduler.init(dateStart,dateEnd,5,shiftnames,shifttimes,6,studentnames);
+
+    cout<<"Autoassigning..."<<endl;
+    cout<<"Wow such autoassign"<<endl;
+    scheduler.autoassign();
+    cout<<"Autoassigned???"<<endl;
+    cout<<scheduler.studentList[0].getName()<<endl;
+
+    cout<<scheduler.toString()<<endl;
+
     #else
     //Main logic
     while(state != EXIT)

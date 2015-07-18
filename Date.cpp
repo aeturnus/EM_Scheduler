@@ -287,3 +287,29 @@ unsigned int Date::weekdayOfMonth()
         return 5;
     return 0;
 }
+
+std::string Date::timeString(unsigned int hour, bool hour24)
+{
+    std::stringstream sstream;
+    sstream<<std::dec;
+    hour = hour%24;
+    if(hour24)
+    {
+        sstream<<hour;
+    }
+    else
+    {
+        unsigned int temp = hour;   //"temp" is a temporary holding space for the visible time
+        if(temp >= 12)
+        {
+            temp -= 12;
+        }
+        if(temp == 0)
+        {
+            temp = 12;  //To display 12AM and 12PM
+        }
+        sstream<<temp;
+        sstream<<(hour<12?"AM":"PM");
+    }
+    return sstream.str();
+}

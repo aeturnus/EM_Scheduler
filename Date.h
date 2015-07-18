@@ -74,9 +74,9 @@ public:
 //    bool parseDate(std::string& datestring); //False for a failed parse
     bool parseDateSet(std::string& datestring); //False for a failed parse
 
-    static unsigned int daysBetween(Date& date1, Date& date2, bool includeEnd = false); //Calculates the difference in days between two dates. includeEnd means that it includes the last date in the count
+    static unsigned int daysBetween(Date& date1, Date& date2, bool includeEnd); //Calculates the difference in days between two dates. includeEnd means that it includes the last date in the count
     static int daysFromEpoch(Date& date);
-
+    static std::string timeString(unsigned int hour, bool hour24 = false);
     //Returns number of weekday in the month e.g. 3rd wednesday of the month
     //Returns 0 if failed
     unsigned int weekdayOfMonth(void);

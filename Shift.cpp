@@ -19,10 +19,12 @@ Shift::~Shift()
 
 }
 
-void Shift::init(std::string shiftName, Date* datePtr)
+void Shift::init(int shiftID,std::string shiftName, Date* datePtr,unsigned int start, unsigned int end)
 {
+    id = shiftID;
     assocDate = datePtr;
     setName(shiftName);
+    setTime(start,end);
     unassign();
     unblock();
     manual = false;
@@ -54,7 +56,7 @@ bool Shift::assign(Student *taker)
 
 void Shift::unassign()
 {
-    assocStudent->unassign;
+    assocStudent->unassign();
     assocStudent = nullptr;
 }
 
@@ -94,9 +96,72 @@ int Shift::getID(void)
     return id;
 }
 
+bool Shift::setTime(unsigned int start, unsigned int end)
+{
+    if(start>=end)
+        return false;
+    startTime = start;
+    endTime = end;
+}
+
+unsigned int Shift::getStart(void)
+{
+    return startTime;
+}
+
+unsigned int Shift::getEnd(void)
+{
+    return endTime;
+}
+
 std::string Shift::toString(void)
 {
     std::stringstream sstream;
-    sstream<<assocDate->toString()<<"\n"<<(blocked?blockReason:name)<<": "<<(assocStudent==nullptr?"Open":assocStudent->getName())<<std::endl;
+    sstream<<assocDate->toString()<<"\n"<<(blocked?blockReason:(name+" "+shiftTimeString()+" "))<<(assocStudent==nullptr?"Open":assocStudent->getName())<<std::endl;
     return sstream.str();
+}
+
+bool Shift::shiftsOverlap(Shift &shift1, Shift &shift2)
+{
+    //The same shift can't overlap itself
+    if(&shift1 == &shift2)
+        return false;
+    //Logic: use doubles to hold fractional epoch days
+    Date date1 = *(shift1.date());
+    Date date2 = *(shift2.date());
+    unsigned int start1 = shift1.getStart();
+    unsigned int end1 = shift1.getEnd();
+    unsigned int start2 = shift2.getStart();
+    unsigned int end2 = shift2.getEnd();
+
+    //These doubles will hold days from the epoch, plus fractional parts of a day
+    double st1 = (double)Date::daysFromEpoch(date1) + (((double)start1)/(24.00));
+    double et1 = (double)Date::daysFromEpoch(date1) + (((double)end1)/(24.00));
+    double st2 = (double)Date::daysFromEpoch(date2) + (((double)start2)/(24.00));
+    double et2 = (double)Date::daysFromEpoch(date2) + (((double)end2)/(24.00));
+
+    //Check if the edges of a shift are in another
+    if(st2 < st1 && st1 < et2)
+        return true;
+    if(st2 < et1 && et1 < et2)
+        return true;
+    return false;
+}
+
+bool Shift::isBlocked(void)
+{
+    return blocked;
+}
+
+std::string Shift::startTimeString(bool hour24)
+{
+    return Date::timeString(startTime,hour24);
+}
+std::string Shift::endTimeString(bool hour24)
+{
+    return Date::timeString(endTime,hour24);
+}
+std::string Shift::shiftTimeString(bool hour24)
+{
+    return (Date::timeString(startTime,hour24)+"-"+Date::timeString(endTime,hour24));
 }
