@@ -15,6 +15,8 @@ public:
 
     Shift();
     ~Shift();
+    Shift& operator=(Shift& rhs);
+
     void init(int shiftID,std::string shiftName, Date* datePtr,unsigned int start, unsigned int end);
     //Sets the name of the shift
     //In:: input: the visible name of this shift
@@ -55,10 +57,11 @@ public:
     unsigned int getStart(void);
     unsigned int getEnd(void);
 
+    std::string getBlockReason(void);
+    std::string getName(void);
 
     //Everyone love's a toString!
     std::string toString(void);
-
     //Static methods
 
     //This method checks if two shifts have overlapping times

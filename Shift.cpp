@@ -19,6 +19,23 @@ Shift::~Shift()
 
 }
 
+Shift& Shift::operator=(Shift &rhs)
+{
+    if(this == &rhs)
+        return *this;
+    id = rhs.getID();
+    name = rhs.getName();
+    blockReason = rhs.getBlockReason();
+    assocDate = rhs.date();
+    assocStudent = rhs.student();
+    startTime = rhs.getStart();
+    endTime = rhs.getEnd();
+    blocked = rhs.isBlocked();
+    manual = rhs.isManual();
+
+    return *this;
+}
+
 void Shift::init(int shiftID,std::string shiftName, Date* datePtr,unsigned int start, unsigned int end)
 {
     id = shiftID;
@@ -114,10 +131,19 @@ unsigned int Shift::getEnd(void)
     return endTime;
 }
 
+std::string Shift::getBlockReason(void)
+{
+    return blockReason;
+}
+std::string Shift::getName(void)
+{
+    return name;
+}
+
 std::string Shift::toString(void)
 {
     std::stringstream sstream;
-    sstream<<assocDate->toString()<<"\n"<<(blocked?blockReason:(name+" "+shiftTimeString()+" "))<<(assocStudent==nullptr?"Open":assocStudent->getName())<<std::endl;
+    sstream<<assocDate->toString()<<"\n"<<(blocked?(blockReason+" "):(name+" "+shiftTimeString()+" " + (assocStudent==nullptr?"Open":assocStudent->getName())))<<std::endl;
     return sstream.str();
 }
 
@@ -141,9 +167,9 @@ bool Shift::shiftsOverlap(Shift &shift1, Shift &shift2)
     double et2 = (double)Date::daysFromEpoch(date2) + (((double)end2)/(24.00));
 
     //Check if the edges of a shift are in another
-    if(st2 < st1 && st1 < et2)
+    if(st2 <= st1 && st1 <= et2)
         return true;
-    if(st2 < et1 && et1 < et2)
+    if(st2 <= et1 && et1 <= et2)
         return true;
     return false;
 }

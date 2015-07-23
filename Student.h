@@ -11,8 +11,10 @@
 class Student
 {
 public:
-    static const int MAX_SHIFTS = 14;
-    static const int MIN_SHIFTS = 12;
+//    static const int MAX_SHIFTS = 50;
+//    static const int MIN_SHIFTS = 12;
+    static int MAX_SHIFTS;
+    static int MIN_SHIFTS;
 
     Student();
     ~Student();
@@ -31,6 +33,9 @@ public:
     void setShiftCount(unsigned int count);
 
     std::string toString(void);
+
+    static void setMinShift(int min);
+    static void setMaxShift(int max);
 protected:
 private:
     //std::string name;       //Student name

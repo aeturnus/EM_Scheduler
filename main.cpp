@@ -2,7 +2,6 @@
 
 
 #include "Prompt.h"
-
 #include <string>
 #include <sstream>
 #include "Date.h"
@@ -11,9 +10,11 @@
 #include "Student.h"
 
 #include "Scheduler.h"
+#include "xlsoutput.h"
 
 #include <xlslib.h>
 #include <xlslib/common.h>
+
 
 
 //#define LINUX
@@ -21,9 +22,9 @@
 #define WINDOWS
 #endif
 
-#define XLS_TEST 1
-#define TEST 2
-#define DEBUG TEST
+#define MAINCASE 0
+#define TESTCASE 1
+#define DEBUG TESTCASE
 
 using namespace std;
 using namespace xlslib_core;
@@ -36,21 +37,11 @@ enum State_enum
 //Global variable fields
 State_enum state = START;
 string cfgname = "";
+Scheduler scheduler;
+workbook output;
+string filepath = "C:/temp/schedule.xls";
 
-Date* datelist;
-unsigned int numdates = 0;
-
-Shift* shiftlist;
-unsigned int numshifts = 0;
-
-Student* studentlist;
-unsigned int numstudents = 6;
-
-//Hard coded limit of 5 shifts
-unsigned int numdisshifts = 5;
-string shiftnames[5] = {"7am-4pm","3pm-12am","11pm-8am","Crash:7am-4pm","Crash:3pm-12am"};   //Refer to by ID
-
-void inline newcfg()
+void inline newcfg(Scheduler& schedule)
 {
     cout<<"Enter a name for this configuration:: ";
     getline(cin,cfgname);
@@ -79,74 +70,29 @@ void inline newcfg()
         getline(cin,datestring);
         cout<<endl;
     }
-    numdates = Date::daysBetween(startDate,endDate,true);   //Include the end date
-    datelist = new Date[numdates]();    //Create an array of dates
-    for(int i = 0; i<numdates; i++)
-    {
-        startDate.setDate(startDate.getNumDay()+(i==0?0:1),startDate.getNumMonth(),startDate.getNumYear()); //Add additional days from start
-        datelist[i] = startDate;
-    }
 
-    //Get memory for all the shifts
-    numshifts = numdates * numdisshifts;
-    shiftlist = new Shift[numshifts]();
-    //Link the shifts to dates
-    unsigned int times[][2] = {{0,0},{0,0},{0,0},{0,0},{0,0}};
-    for(int i = 0; i<numdates; i++)                                 //For every date
-    {
-        for(int j = 0; j<numdisshifts; j++)                            //For each particular shift
-        {
-            shiftlist[i*numdisshifts + j].init(j,shiftnames[j],&datelist[i],times[j][0],times[j][1]);
-        }
-    }
 
-    //Auto block certain shifts
-    Date* shiftdate;
-    for(int i = 0; i<numshifts; i++)
-    {
-        shiftdate = shiftlist[i].date();
-        //Thursday (4) block
-        if(shiftdate->getNumDayOfWeek() == 4)
-            //Not the third Thursday
-            if(shiftdate->weekdayOfMonth() != 3)
-                //Not the 7am-4pm or crash version shifts
-                if(shiftlist[i].getID() == 0 || shiftlist[i].getID() == 3)
-                    shiftlist[i].block("EM conference 7am-2pm");
-        //Wednesday (3) block
-        if(shiftdate->getNumDayOfWeek() == 3)
-            //Not the third Wednesday
-            if(shiftdate->weekdayOfMonth() != 3)
-                //Not the 11pm-8am or crash version shifts
-                if(shiftlist[i].getID() == 2 || shiftlist[i].getID() == 2)
-                    shiftlist[i].block("EM conference 11pm-8am");
-    }
-    //TODO: Block off the last day's non day shifts
-
-    /*
-     * Debug printout
-    for(int i = 0; i< numshifts;i++)
-    {
-        cout<<shiftlist[i].toString()<<endl;
-    }
-     */
+    Student::setMaxShift(50);
 
 
     //Hard coded 6 students
     //Get memory for them
-    studentlist = new Student[numstudents]();
-    string stuname="";
-    for(int i = 0; i<numstudents; i++)
+    string studentnames[6];
+    for(int i = 0; i<6; i++)
     {
         cout<<"What is student "<<(i+1)<<"'s name?:: ";
-        getline(cin,stuname);
+        getline(cin,studentnames[i]);
         cout<<endl;
-        studentlist[i].setID(i);
-        studentlist[i].setName(stuname);
     }
-    for(int i = 0; i<numstudents; i++)
-    {
-        cout<<studentlist[i].toString()<<endl;
-    }
+
+    //Hard coded in
+    string shiftnames[5] = {"Shift","Shift","Shift","Crash","Crash"};
+    unsigned int shifttimes[5][2] = {{7,16},{15,24},{23,32},{7,16},{15,24}};
+
+    schedule.init(cfgname,startDate,endDate,5,shiftnames,shifttimes,6,studentnames);
+
+    schedule.autoblock();
+
 
     //And we're done initializing!
 }
@@ -164,7 +110,7 @@ void inline start(unsigned char input)
     {
         //New configuration
         case 'a':
-            newcfg();
+            newcfg(scheduler);
             state = MAIN;
             break;
         //Load configuration
@@ -184,101 +130,161 @@ void inline start(unsigned char input)
 }
 
 
-//Returns the student with the least amount of shifts
-unsigned int minStudent(void)
+
+
+/*
+void scheduleToXLS(Scheduler& schedule, workbook& wb)
 {
-    unsigned int lowestID = 0;
-    for(int i = 0; i < numstudents; i++)
+    worksheet* sh = wb.sheet("Master Schedule");
+
+    xf_t* format = wb.xformat();
+    format->SetWrap(true);
+    format->SetVAlign(VALIGN_TOP);
+
+
+    //Label them
+    sh->defaultColwidth(25);
+    sh->label(0,0,"Sunday");
+    sh->label(0,1,"Monday");
+    sh->label(0,2,"Tuesday");
+    sh->label(0,3,"Wednesday");
+    sh->label(0,4,"Thursday");
+    sh->label(0,5,"Friday");
+    sh->label(0,6,"Saturday");
+
+
+    //Do the dates
+    unsigned int rowbase = 1;
+    unsigned int row = 0;
+    unsigned int col;
+    Date* datePtr = nullptr;
+    Shift* shiftPtr;
+    stringstream sstream;
+
+    for(int i = 0; i <schedule.getShiftNum(); i++)
     {
-        if(studentlist[i].getShiftCount() < studentlist[lowestID].getShiftCount())
+        //For each shift, check if it's the same date as before
+        if(datePtr != schedule.shifts()[i].date() || datePtr == nullptr)
         {
-            lowestID = i;
+            //Actually put the string in
+            if(datePtr != nullptr)
+            {
+                sh->label(row+rowbase, col, sstream.str(), format);   //Skip this if it's the first date
+                if (datePtr->getNumDayOfWeek() == 6)
+                    row++;
+            }
+
+            //Begin a new day in the calendar
+            sstream.str("");
+            sstream<<dec;
+            datePtr = schedule.shifts()[i].date();
+            //On a new day, put the date onto the spreadsheet
+            sstream<<datePtr->getMonth()<<" "<<datePtr->getNumDay()<<"\n\n";
+
+
+
         }
-    }
-    return lowestID;
-}
-
-//Enumerate the number of shifts a particular student has.
-unsigned int countShifts(Student* stuPtr)
-{
-    unsigned int output = 0;
-    for(int i = 0; i<numshifts; i++)
-    {
-        //Check for each shift to see if it's associated with a particular student
-        if(shiftlist[i].student() == stuPtr)
+        shiftPtr = &schedule.shifts()[i];   //Grab the pointer
+        col = datePtr->getNumDayOfWeek();
+        if(shiftPtr->isBlocked())
         {
-            output++;
-        }
-    }
-    return output;
-}
-
-void autoassign(void)
-{
-    //Scan the entire list of shifts
-    //Prehensive shift enumeration of all the students
-    for(int i = 0; i<numstudents; i++)
-    {
-        studentlist[i].setShiftCount(countShifts(&studentlist[i]));
-    }
-
-    for(int i = 0; i<numshifts; i++)
-    {
-        //If the particular shift doesn't have a manual set
-        if(!shiftlist[i].isManual())
-        {
-            //If it fails, it's because it's blocked
-            shiftlist[i].assign(&studentlist[minStudent()]);
-            //cout<<"Shift!!!"<<endl;
-            //cout<<shiftlist[i].toString()<<endl;
+            sstream<<shiftPtr->getBlockReason()<<"\n\n\n";
         }
         else
         {
-            //cout<<"Shift is manual"<<endl;
+            //Not blocked
+            //cout<<(shiftPtr->toString())<<endl;
+
+            sstream<<shiftPtr->getName()<<" "<<shiftPtr->shiftTimeString()<<"::\n    ";
+            sstream<<((shiftPtr->student()==nullptr)?"Open":(shiftPtr->student())->getName());
+            sstream<<"\n\n";
         }
-        (shiftlist[i].student())->setShiftCount(countShifts(shiftlist[i].student()));   //Update shift count
-    }
-}
 
-string studentScheduleOut(unsigned int stuID)
-{
-    unsigned int num = 0;   //Count the shift number
-    stringstream sstream;
 
-    sstream<<studentlist[stuID].getName()<<"\n";
-    for(int i = 0; i < numshifts;i++)
-    {
-        if(&studentlist[stuID] == shiftlist[i].student())
+        //Special last case
+        if(i == schedule.getShiftNum() - 1)
         {
-            //Print the shift they have
-            num++;
-            sstream<<dec<<"(" <<num<<") "<<shiftlist[i].toString()<<endl;
+            sh->label(row+rowbase, col, sstream.str(), format);   //If it's the last shift, make sure to write to the sheet
+            sstream.clear();
+
+        }
+
+        //if(datePtr->getNumDayOfWeek() == 6)
+        //    row++;
+    }
+    //End dates
+
+    //Create a shift schedule for each student
+
+    //Name each sheet
+    //sstream.str("");
+    worksheet* studentSheet[schedule.getStudentNum()];
+    worksheet* sheet;
+    worksheet* combsheet = wb.sheet("Per Student Schedules");
+    combsheet->defaultColwidth(25);
+
+    //Fancy formatting: alternate colors
+    xf_t* evenformat = wb.xformat();
+    xf_t* oddformat = wb.xformat();
+
+    evenformat->SetWrap(true);
+    evenformat->SetVAlign(VALIGN_TOP);
+    evenformat->SetBorderStyle(BORDER_LEFT,BORDER_DOUBLE);
+    evenformat->SetBorderStyle(BORDER_BOTTOM,BORDER_THIN);
+    evenformat->SetBorderStyle(BORDER_TOP,BORDER_THIN);
+    evenformat->SetBorderStyle(BORDER_RIGHT,BORDER_DOUBLE);
+//    evenformat->SetFillBGColor(COLOR_CODE_GRAY25);
+    evenformat->SetFillFGColor(COLOR_CODE_BLUE);
+
+    oddformat->SetWrap(true);
+    oddformat->SetVAlign(VALIGN_TOP);
+    oddformat->SetBorderStyle(BORDER_LEFT,BORDER_DOUBLE);
+    oddformat->SetBorderStyle(BORDER_BOTTOM,BORDER_THIN);
+    oddformat->SetBorderStyle(BORDER_TOP,BORDER_THIN);
+    oddformat->SetBorderStyle(BORDER_RIGHT,BORDER_DOUBLE);
+    oddformat->SetFillFGColor(COLOR_CODE_WHITE);
+    Student* student;
+
+    //stringstream sstream;
+    for(int i = 0; i < schedule.getStudentNum(); i++)
+    {
+        row = 0;
+        sheet = studentSheet[i];
+        student= &(schedule.students()[i]);
+
+        sheet = wb.sheet(schedule.students()[i].getName());
+        sheet->defaultColwidth(25);
+        sheet->label(row,0,student->getName());
+        if(i%2 == 0)
+            combsheet->label(row,i,student->getName(),evenformat);
+        else
+            combsheet->label(row,i,student->getName(),oddformat);
+        row++;
+        for(int j = 0; j < schedule.getShiftNum(); j++)
+        {
+            if(schedule.shifts()[j].student() == student)
+            {
+                sstream.str("");
+                sstream<<schedule.shifts()[j].date()->toString()<<"\n"<<schedule.shifts()[j].getName()<<(schedule.shifts()[j].getName().size()!=0?" ":"")<<schedule.shifts()[j].shiftTimeString(false)<<"\n";
+                sheet->label(row,0,sstream.str(),format);
+                if(i%2 == 0)
+                    combsheet->label(row,i,sstream.str(),evenformat);
+                else
+                    combsheet->label(row,i,sstream.str(),oddformat);
+                row++;
+            }
         }
     }
 
-    return sstream.str();
 }
-
-string shiftsOut(void)
-{
-    stringstream sstream;
-
-    for(int i = 0; i<numshifts; i++)
-    {
-        sstream<<shiftlist[i].toString()<<endl;
-    }
-
-    return sstream.str();
-}
+*/
 
 void inline mainmenu(unsigned char input)
 {
     switch(input)
     {
         case 'a':
-            autoassign();
-//            cout<<studentScheduleOut(0);
-            cout<<shiftsOut();
+            scheduler.autoassign();
             state = MAIN;
             break;
         case 'b':
@@ -287,50 +293,60 @@ void inline mainmenu(unsigned char input)
         case 'c':
             state = STUDENT;
             break;
+        case 'd':
+            scheduleToXLS(scheduler,output);
+            output.Dump(filepath);
+            state = MAIN;
+            break;
         case 'z':
             state = EXIT;
             break;
     }
 
 }
+
 int main()
 {
-    #if(DEBUG == XLS_TEST)
-    cout << "Hello, World!" << endl;
-    string yoyo;
-    cin>>yoyo;
-    //Test .xls capabilities
-    workbook wb;
-    worksheet* sh = wb.sheet(yoyo);
-    sh->number(0,0,3);
-    sh->number(1,0,5);
-    sh->label(0,1,"String, nigga");
-    #ifdef WINDOWS
-    wb.Dump("C:/temp/wb.xls");
-    #else
-    wb.Dump("/home/brandon/wb.xls");
-    #endif
-    cout <<"Dumped"<<endl;
-    #elif(DEBUG == TEST)
+    #if(DEBUG == TESTCASE)
     cout<<"Hello world"<<endl;
 
     Scheduler scheduler;
     Date dateStart,dateEnd;
-    dateStart.setDate(1,Date::JAN,2015);
-    dateEnd.setDate(3,Date::JAN,2015);
-
-    string shiftnames[5] = {"Shift 1","Shift 2","Shift 3","Shift 4","Shift 5"};
-    unsigned int shifttimes[5][2] = {{0,2},{2,4},{4,6},{6,8},{8,10}};
-    string studentnames[6] = {"Student 1","Student 2","Student 3","Student 4","Student 5","Student 6"};
-    scheduler.init(dateStart,dateEnd,5,shiftnames,shifttimes,6,studentnames);
+    dateStart.setDate(22,Date::SEP,2014);
+    dateEnd.setDate(17,Date::OCT,2014);
+    Student::setMaxShift(50);
+    string shiftnames[5] = {"Shift","Shift","Shift","Crash","Crash"};
+    unsigned int shifttimes[5][2] = {{7,16},{15,24},{23,32},{7,16},{15,24}};
+    string studentnames[6] = {"A","B","C","D","E","F"};
+    scheduler.init("yayaya",dateStart,dateEnd,5,shiftnames,shifttimes,6,studentnames);
 
     cout<<"Autoassigning..."<<endl;
     cout<<"Wow such autoassign"<<endl;
-    scheduler.autoassign();
-    cout<<"Autoassigned???"<<endl;
-    cout<<scheduler.studentList[0].getName()<<endl;
-
+    scheduler.autoblock();
+//    scheduler.shiftList[0].block("Arbitrary");
+    if(!scheduler.autoassign())
+    {
+        cout<<"Too many shifts for students to fulfill with their maximum"<<endl;
+    }
     cout<<scheduler.toString()<<endl;
+    for(int i = 0; i <scheduler.getStudentNum(); i++)
+    {
+        cout << (scheduler.students()[i]).getShiftCount() << endl;
+    }
+    /*
+    for(int i = 0; i < scheduler.getShiftNum(); i++)
+    {
+        cout<<scheduler.shifts()[i].toString()<<endl;
+        for(int j = 0; j<0xFFFFFFF; j++);
+    }
+     */
+
+    workbook wb;
+    scheduleToXLS(scheduler,wb);
+
+    wb.Dump("C:/temp/schedule.xls");
+
+    cin.get();
 
     #else
     //Main logic
@@ -354,11 +370,9 @@ int main()
 
     //Free that memory!
 
-    delete[] datelist;
-    delete[] studentlist;
-    delete[] shiftlist;
-
 
     //cin.get();
     return 0;
 }
+
+

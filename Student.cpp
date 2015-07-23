@@ -5,6 +5,11 @@
 #include <sstream>
 #include "Student.h"
 
+
+int Student::MAX_SHIFTS = 14;
+int Student::MIN_SHIFTS = 12;
+
+
 Student::Student()
 {
     shiftCount = 0;
@@ -15,12 +20,21 @@ Student::~Student()
 
 }
 
+void Student::setMinShift(int min)
+{
+    MIN_SHIFTS = min;
+}
+
+void Student::setMaxShift(int max)
+{
+    MAX_SHIFTS = max;
+}
+
+
 bool Student::assign(void)
 {
     if(shiftCount < MAX_SHIFTS)
-    {
         return true;
-    }
     return false;
 }
 
@@ -63,7 +77,7 @@ void Student::setShiftCount(unsigned int count)
 std::string Student::toString()
 {
     std::stringstream sstream;
-    sstream<<std::dec<<"["<<id<<"]"<<name<<": "<<std::dec<<shiftCount<<(shiftCount==1?" shift":" shifts")<<std::endl;
+    sstream<<std::dec<<"["<<id<<"] "<<name<<": "<<std::dec<<shiftCount<<(shiftCount==1?" shift":" shifts")<<std::endl;
     return sstream.str();
 }
 

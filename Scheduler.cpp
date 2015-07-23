@@ -5,6 +5,7 @@
 #include "Scheduler.h"
 #include <string>
 #include <sstream>
+#include <vector>
 #include "Date.h"
 #include "Student.h"
 #include "Shift.h"
@@ -21,8 +22,9 @@ Scheduler::~Scheduler()
     delete[] studentList;
 }
 
-void Scheduler::init(Date start, Date end, unsigned int numshift, std::string shiftNames[],unsigned int shiftTimes[][2], unsigned int numstudents, std::string studentNames[])
+void Scheduler::init(std::string inName,Date start, Date end, unsigned int numshift, std::string shiftNames[],unsigned int shiftTimes[][2], unsigned int numstudents, std::string studentNames[])
 {
+    name = inName;
     disShiftNum = numshift;
     dateNum = Date::daysBetween(start,end,true);    //Get the number of days between to allocate dates
     shiftNum = dateNum * disShiftNum;
@@ -62,23 +64,43 @@ bool Scheduler::autoassign(void)
         updateShiftCount(&studentList[i]);
     }
     Student* eligStudent;
+    std::vector<Student*> excludevector;
+    int eligcount;
+    bool skip = false;
     for(int i = 0; i < shiftNum; i++)
     {
-        if(!shiftList[i].isManual())
+        //Kills itself on the 78th iteration
+
+        //Tries to find an elligible student if it's not manually set or is blocked
+        if(!shiftList[i].isManual() && !shiftList[i].isBlocked())
         {
+            skip = false;
             eligStudent = minStudent();
-            while(checkOverlaps(&shiftList[i],eligStudent))
+            excludevector.clear();
+            while(checkOverlaps(&shiftList[i],eligStudent) && !checkMinTimeSinceLastShift(&shiftList[i],eligStudent,8) && skip == false && eligStudent != nullptr)
             {
                 //While it overlaps, try another eligStudent by finding another minStudent excluding itself
-                eligStudent = minStudent(eligStudent);
+
+                //Should not
+                if(excludevector.size() >= studentNum)
+                {
+                    //If none fit the criteria, then we skip this shift. Such automation.
+                    skip = true;
+                }
+                if(!skip)
+                {
+                    excludevector.push_back(eligStudent);
+                    eligStudent = minStudent(&excludevector);  //minStudent will exclude all entries up to the eligStudent
+                }
             }
             if(eligStudent == nullptr)
             {
                 return false;
             }
-            assign(&shiftList[i],eligStudent);
+            if(!skip)
+                assign(&shiftList[i],eligStudent);
         }
-        if(!shiftList[i].isBlocked())
+        if(!shiftList[i].isBlocked() && !skip)
             updateShiftCount(shiftList[i].student());       //Update the count of a student. If it's manually set, it'll update the count for th student that's assigned. Only if not blocked
     }
     return true;
@@ -89,17 +111,34 @@ bool Scheduler::assign(Shift *shiftPtr, Student *stuPtr)
     return shiftPtr->assign(stuPtr);
 }
 
-Student* Scheduler::minStudent(Student* exclude)
+Student* Scheduler::minStudent(std::vector<Student*> *excludevector)
 {
+    //The entries will be checked against the excludevector
     int mindex = 0;
+    bool exclude;
     for(int i = 0; i<studentNum; i++)
     {
         if(studentList[i].getShiftCount() < studentList[mindex].getShiftCount())
-            if(&studentList[i] != exclude || exclude == nullptr)
+        {
+            //Idea: if the new minStudent is in the excludevector, then skip it
+            exclude = false;
+            if(excludevector != nullptr)
+            {
+                for (int j = 0; j < (*excludevector).size(); j++)
+                {
+                    if ((*excludevector)[i] == &studentList[i])
+                        exclude = true;
+                }
+            }
+            if(!exclude)
+            {
                 mindex = i; //If the address of the excluded student is the same as the current, and it is smaller than the minimum index, it will skip this step updating the mindex
+            }
+        }
     }
     if(studentList[mindex].getShiftCount() >= Student::MAX_SHIFTS)
     {
+        //Return a nullpointer if it fails to work
         return nullptr;
     }
     return &studentList[mindex];
@@ -128,8 +167,6 @@ bool Scheduler::checkOverlaps(Shift *shiftPtr, Student *studentPtr)
 }
 
 
-
-
 std::string Scheduler::toString(void)
 {
 
@@ -141,4 +178,95 @@ std::string Scheduler::toString(void)
     sstream<<std::endl;
 
     return sstream.str();
+}
+
+void Scheduler::autoblock()
+{
+    Date* shiftdate;
+
+    Shift thurMeet;
+    Shift wedMeet;
+    for(int i = 0; i<shiftNum; i++)
+    {
+        shiftdate = shiftList[i].date();
+        thurMeet.init(0,"",shiftdate,0,14);     //Temporary shift to try overlapping with
+        wedMeet.init(0,"",shiftdate,23,32);     //Temporary shift to try overlapping with
+
+        //Thursday
+        if(shiftdate->getNumDayOfWeek()==4)
+            if(shiftdate->weekdayOfMonth()!=3)
+                if(Shift::shiftsOverlap(thurMeet,shiftList[i]))
+                    shiftList[i].block("EM conference 7AM-2PM");
+        //Wednesday
+        if(shiftdate->getNumDayOfWeek()==3)
+            if(shiftdate->weekdayOfMonth()!=3)
+                if(Shift::shiftsOverlap(wedMeet,shiftList[i]))
+                    shiftList[i].block("EM conference 11PM-8AM");
+    }
+
+    //Block off night shifts on the last day
+    Shift tempShift;
+    tempShift.init(0xFFFFFFFF,"temp",shiftList[shiftNum-1].date(),17,24);   //Temporary shift to compare to
+    for(int i = shiftNum - disShiftNum; i < shiftNum; i++)
+    {
+        if(Shift::shiftsOverlap(shiftList[i],tempShift))
+        {
+            shiftList[i].block("");
+        }
+    }
+
+
+}
+
+
+bool Scheduler::checkMinTimeSinceLastShift(Shift *targetShiftPtr, Student *studentPtr, unsigned int minTime)
+{
+    unsigned int lastdex;   //The index of the latest shift
+    Shift tempShift;        //Temporary shift to edit for time
+    for(int i = 0; i < shiftNum; i++)
+    {
+        //Hunt for shifts that studentPtr has
+        if(shiftList[i].student() == studentPtr)
+            lastdex = i;
+    }
+
+    tempShift = shiftList[lastdex];     //Use operator= to make a temporary shift to check overlaps with
+    tempShift.setTime(tempShift.getStart(),(tempShift.getEnd() + minTime - 1)); //Add minTime to the end time. Subtract 1 since shiftOverlaps returns true if the values are the exact.
+
+    return !(Shift::shiftsOverlap(tempShift,*targetShiftPtr));    //Compare the shifts to see if they overlap. If they overlap, return false
+}
+
+
+
+//Getters
+
+unsigned int Scheduler::getDateNum(void)
+{
+    return dateNum;
+}
+unsigned int Scheduler::getShiftNum(void)
+{
+    return shiftNum;
+}
+unsigned int Scheduler::getStudentNum(void)
+{
+    return studentNum;
+}
+
+Date* Scheduler::dates(void)
+{
+    return dateList;
+}
+Shift* Scheduler::shifts(void)
+{
+    return shiftList;
+}
+Student* Scheduler::students(void)
+{
+    return studentList;
+}
+
+std::string Scheduler::getName(void)
+{
+    return name;
 }
