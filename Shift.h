@@ -8,6 +8,8 @@
 #include "Student.h"
 #include "Date.h"
 #include <string>
+#include <ostream>
+#include <istream>
 
 class Shift
 {
@@ -17,7 +19,7 @@ public:
     ~Shift();
     Shift& operator=(Shift& rhs);
 
-    void init(int shiftID,std::string shiftName, Date* datePtr,unsigned int start, unsigned int end);
+    void init(std::string shiftName, Date* datePtr,unsigned int start, unsigned int end);
     //Sets the name of the shift
     //In:: input: the visible name of this shift
     void setName(std::string input);
@@ -66,9 +68,12 @@ public:
 
     //This method checks if two shifts have overlapping times
     static bool shiftsOverlap(Shift& shift1, Shift& shift2);
+
+    //A pointer to a date is provided so it can index itself into the date
+    void streamOutBinary(std::ostream& stream,Date* dateList, Student *studentList);
+    void streamInBinary(std::istream& stream,Date* dateList, Student *studentList);
 protected:
 private:
-    int id;                     //Numerical id for numberkeeping
     std::string name;           //The shift's name
     std::string blockReason;    //Visible reason for the block
     bool blocked;               //Determines if the shift is blocked

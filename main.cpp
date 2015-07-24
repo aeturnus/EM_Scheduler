@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <fstream>
 
 #include "Prompt.h"
 #include <string>
@@ -24,6 +24,7 @@
 
 #define MAINCASE 0
 #define TESTCASE 1
+#define TEST 2
 #define DEBUG TESTCASE
 
 using namespace std;
@@ -328,7 +329,7 @@ int main()
     {
         cout<<"Too many shifts for students to fulfill with their maximum"<<endl;
     }
-    cout<<scheduler.toString()<<endl;
+    //cout<<scheduler.toString()<<endl;
     for(int i = 0; i <scheduler.getStudentNum(); i++)
     {
         cout << (scheduler.students()[i]).getShiftCount() << endl;
@@ -346,7 +347,53 @@ int main()
 
     wb.Dump("C:/temp/schedule.xls");
 
+
+    ofstream fileo;
+    fileo.open("C:/temp/schedule.schd");
+    scheduler.streamOutBinary(fileo);
+    fileo.close();
+
+    ifstream filei;
+    filei.open("C:/temp/schedule.schd");
+    scheduler.streamInBinary(filei);
+    filei.close();
+
+    cout<<scheduler.toString()<<endl;
+    cout<<"Load complete"<<endl;
+
+
+    fileo.open("C:/temp/schedule-copy.schd");
+    scheduler.streamOutBinary(fileo);
+    fileo.close();
+
+    cout<<"Export 2 complete"<<endl;
+
     cin.get();
+
+    #elif (DEBUG == TEST)
+
+    Student test1,test2,test3,test4;
+    test1.setID(25);
+    test1.setName("Chips");
+    test2.setID(43);
+    test2.setName("Icecream");
+
+    ofstream fileo;
+
+    fileo.open("test.student");
+    test1.streamOutBinary(fileo);
+    test2.streamOutBinary(fileo);
+    fileo.close();
+
+    ifstream filei;
+
+    filei.open("test.student");
+    test3.streamInBinary(filei);
+    test4.streamInBinary(filei);
+    filei.close();
+
+    cout<<"This is test3:\n"<<test3.toString()<<endl;
+    cout<<"This is test4:\n"<<test4.toString()<<endl;
 
     #else
     //Main logic

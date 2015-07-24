@@ -45,7 +45,7 @@ void Scheduler::init(std::string inName,Date start, Date end, unsigned int numsh
     {
         for(int j = 0; j<disShiftNum; j++)
         {
-            shiftList[i*disShiftNum + j].init(j,shiftNames[j],&dateList[i],shiftTimes[j][0],shiftTimes[j][1]);  //Initialize shift names and dates and times
+            shiftList[i*disShiftNum + j].init(shiftNames[j],&dateList[i],shiftTimes[j][0],shiftTimes[j][1]);  //Initialize shift names and dates and times
         }
     }
 
@@ -189,8 +189,8 @@ void Scheduler::autoblock()
     for(int i = 0; i<shiftNum; i++)
     {
         shiftdate = shiftList[i].date();
-        thurMeet.init(0,"",shiftdate,0,14);     //Temporary shift to try overlapping with
-        wedMeet.init(0,"",shiftdate,23,32);     //Temporary shift to try overlapping with
+        thurMeet.init("",shiftdate,0,14);     //Temporary shift to try overlapping with
+        wedMeet.init("",shiftdate,23,32);     //Temporary shift to try overlapping with
 
         //Thursday
         if(shiftdate->getNumDayOfWeek()==4)
@@ -206,7 +206,7 @@ void Scheduler::autoblock()
 
     //Block off night shifts on the last day
     Shift tempShift;
-    tempShift.init(0xFFFFFFFF,"temp",shiftList[shiftNum-1].date(),17,24);   //Temporary shift to compare to
+    tempShift.init("temp",shiftList[shiftNum-1].date(),17,24);   //Temporary shift to compare to
     for(int i = shiftNum - disShiftNum; i < shiftNum; i++)
     {
         if(Shift::shiftsOverlap(shiftList[i],tempShift))
@@ -269,4 +269,90 @@ Student* Scheduler::students(void)
 std::string Scheduler::getName(void)
 {
     return name;
+}
+
+
+//Files
+/*
+ *  4B: Name length
+ * ??B: Name
+ *  4B: # of students
+ * ??B: Students
+ * 12B: Start Date
+ * 12B: End Date
+ *  4B: # of shifts
+ * ??B: Shifts
+ */
+void Scheduler::streamOutBinary(std::ostream &stream)
+{
+    unsigned int length = name.length();
+    stream.write((char*)&length,4);                                 //<Name length>
+
+    stream.write(name.c_str(),length);                              //<Name>
+
+    stream.write((char*)&studentNum,4);                             //<Number of students>
+    for(int i = 0; i < studentNum; i++)
+    {
+        studentList[i].streamOutBinary(stream);                     //<Students>
+    }
+
+    Date start = dateList[0];
+    Date end = dateList[dateNum-1];
+
+    start.streamOutBinary(stream);                                  //<Start date>
+    end.streamOutBinary(stream);                                    //<End date>
+
+    stream.write((char*)&shiftNum,4);                               //<# of shifts>
+    for(int i = 0; i < shiftNum; i++)
+    {
+        shiftList[i].streamOutBinary(stream,dateList,studentList);  //<Shifts>
+    }
+
+
+}
+
+void Scheduler::streamInBinary(std::istream &stream)
+{
+    //Free what it already has
+    delete[] shiftList;
+    delete[] dateList;
+    delete[] studentList;
+    //
+
+    unsigned int length;
+    stream.read((char*)&length,4);                                                          //<Length of Name>
+    name.resize(length);
+    stream.read((char*)name.c_str(),length);                                                //<Name>
+    stream.read((char*)&studentNum,4);                                                      //<# of students>
+
+    studentList = new Student[studentNum]();                                                //Allocate space for the students
+    for(int i = 0; i < studentNum; i++)
+    {
+        studentList[i].streamInBinary(stream);                                              //<Students>
+    }
+
+    Date start;
+    Date end;
+    start.streamInBinary(stream);                                                           //<Start date>
+    end.streamInBinary(stream);                                                             //<End date>
+    dateNum = Date::daysBetween(start,end,true);
+    dateList = new Date[dateNum]();
+
+    //Setup the dateList
+    for(int i = 0; i<dateNum; i++)
+    {
+        //Add additional days from start
+        start.setDate(start.getNumDay()+(i==0?0:1),start.getNumMonth(),start.getNumYear());
+        dateList[i] = start;
+    }
+
+    stream.read((char*)&shiftNum,4);                                                        //<# of shifts>
+    shiftList = new Shift[shiftNum]();
+    for(int i = 0; i<shiftNum; i++)
+    {
+        //Load the shifts
+        shiftList[i].streamInBinary(stream,dateList,studentList);                           //<Shifts>
+    }
+
+    disShiftNum = 6;    //Basically worthless after the initialization
 }

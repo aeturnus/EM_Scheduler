@@ -6,7 +6,8 @@
 #define EM_SCHEDULER_DATE_H
 
 #include <string>
-
+#include <ostream>
+#include <istream>
 class Date
 {
 public:
@@ -71,6 +72,7 @@ public:
 
     std::string toString(void);
 
+
 //    bool parseDate(std::string& datestring); //False for a failed parse
     bool parseDateSet(std::string& datestring); //False for a failed parse
 
@@ -80,6 +82,11 @@ public:
     //Returns number of weekday in the month e.g. 3rd wednesday of the month
     //Returns 0 if failed
     unsigned int weekdayOfMonth(void);
+
+
+    //File
+    void streamOutBinary(std::ostream& stream);
+    void streamInBinary(std::istream& stream);
 protected:
 
 

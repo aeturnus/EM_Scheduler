@@ -4,6 +4,8 @@
 
 #include <string>
 #include <iostream>
+#include <istream>
+#include <ostream>
 #include <sstream>
 #include "Shift.h"
 #include "Date.h"
@@ -23,7 +25,6 @@ Shift& Shift::operator=(Shift &rhs)
 {
     if(this == &rhs)
         return *this;
-    id = rhs.getID();
     name = rhs.getName();
     blockReason = rhs.getBlockReason();
     assocDate = rhs.date();
@@ -36,9 +37,8 @@ Shift& Shift::operator=(Shift &rhs)
     return *this;
 }
 
-void Shift::init(int shiftID,std::string shiftName, Date* datePtr,unsigned int start, unsigned int end)
+void Shift::init(std::string shiftName, Date* datePtr,unsigned int start, unsigned int end)
 {
-    id = shiftID;
     assocDate = datePtr;
     setName(shiftName);
     setTime(start,end);
@@ -108,10 +108,6 @@ Date* Shift::date(void)
     return assocDate;
 }
 
-int Shift::getID(void)
-{
-    return id;
-}
 
 bool Shift::setTime(unsigned int start, unsigned int end)
 {
@@ -190,4 +186,94 @@ std::string Shift::endTimeString(bool hour24)
 std::string Shift::shiftTimeString(bool hour24)
 {
     return (Date::timeString(startTime,hour24)+"-"+Date::timeString(endTime,hour24));
+}
+
+
+//File
+/*
+ *  4B: Name length
+ * ??B: Name
+ *  4B: Block reason length
+ * ??B: Block reason
+ *  1B: Blocked
+ *  1B: Manual
+ *  4B: Start time
+ *  4B: End time
+ *  4B: Date index: equals 0xFFFFFFFF if nullptr
+ *  4B: Student index: equals 0xFFFFFFFF if nullptr
+ */
+
+void Shift::streamOutBinary(std::ostream &stream, Date *dateList, Student *studentList)
+{
+    unsigned int length = name.size();
+    stream.write((char*)&length,4);                     //<Name length>
+    stream.write((char*)name.c_str(),length);           //<Name>
+    length = blockReason.size();
+    stream.write((char*)&length,4);                     //<Block Reason length>
+    stream.write((char*)blockReason.c_str(),length);    //<Block Reason>
+    char charBlocked = blocked&0xFF;
+    stream.write(&charBlocked,1);                       //<Blocked>
+    char charManual = manual&0xFF;
+    stream.write(&charManual,1);                        //<Manual>
+    stream.write((char*)&startTime,4);                  //<Start time>
+    stream.write((char*)&endTime,4);                    //<End time>
+    unsigned int index = 0;
+    if(assocDate == nullptr)
+    {
+        index = 0xFFFFFFFF;
+    }
+    else
+    {
+        for(index = 0; index < 0xFFFFFFFF && (assocDate != &dateList[index]); index++)
+        {
+            //Find the index of the date in the datelist
+        }
+    }
+    stream.write((char*)&index,4);                      //<Date index>
+    if(assocStudent == nullptr)
+    {
+        index = 0xFFFFFFFF;
+    }
+    else
+    {
+        for(index = 0; index < 0xFFFFFFFF && (assocStudent != &studentList[index]); index++)
+        {
+            //Find the index of the student in the studentlist
+        }
+    }
+    stream.write((char*)&index,4);                      //<Student index>
+}
+
+void Shift::streamInBinary(std::istream &stream, Date *dateList, Student *studentList)
+{
+    unsigned int length;
+    stream.read((char*)&length,4);                      //<Name length>
+    name.resize(length);            //Fix up the length
+    stream.read((char*)name.c_str(),length);            //<Name>
+    stream.read((char*)&length,4);                      //<Block Reason length>
+    blockReason.resize(length);     //Fix up the length
+    stream.read((char*)blockReason.c_str(),length);    //<Block Reason>
+
+    char charBlocked;
+    stream.read(&charBlocked,1);                        //<Blocked>
+    blocked = (bool)charBlocked;
+
+    char charManual;
+    stream.read(&charManual,1);                         //<Manual>
+    manual = (bool)charManual;
+
+    stream.read((char*)&startTime,4);                          //<Start time>
+    stream.read((char*)&endTime,4);                            //<End time>
+
+    unsigned int index;
+    stream.read((char*)&index,4);                              //<Date index>
+    if(index == 0xFFFFFFFF)
+        assocDate = nullptr;
+    else
+        assocDate = &dateList[index];
+    stream.read((char*)&index,4);                              //<Student index>
+    if(index == 0xFFFFFFFF)
+        assocStudent = nullptr;
+    else
+        assocStudent = &studentList[index];
 }

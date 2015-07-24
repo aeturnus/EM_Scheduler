@@ -7,6 +7,8 @@
 
 #include <cstdint>
 #include <string>
+#include <ostream>
+#include <istream>
 
 class Student
 {
@@ -36,13 +38,15 @@ public:
 
     static void setMinShift(int min);
     static void setMaxShift(int max);
+
+    void streamOutBinary(std::ostream& stream);
+    void streamInBinary(std::istream& stream);
 protected:
 private:
-    //std::string name;       //Student name
+    std::string name;       //Student name
     unsigned int shiftCount;    //Student shift count
     std::uint16_t color;    //Student color on sheet (Do I need this?)
     unsigned int id;
-    std::string name;
 };
 
 

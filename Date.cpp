@@ -5,6 +5,8 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <ostream>
+#include <istream>
 #include "Date.h"
 #include "Parser.h"
 
@@ -312,4 +314,29 @@ std::string Date::timeString(unsigned int hour, bool hour24)
         sstream<<(hour<12?"AM":"PM");
     }
     return sstream.str();
+}
+
+//File
+/*
+ * 4B: Year
+ * 4B: Month
+ * 4B: Day
+ */
+void Date::streamOutBinary(std::ostream &stream)
+{
+    stream.write((char*)&year,4);   //Year
+    stream.write((char*)&month,4);  //Month
+    stream.write((char*)&day,4);    //Day
+
+}
+void Date::streamInBinary(std::istream &stream)
+{
+    int newYear;
+    unsigned int newMonth;
+    unsigned int newDay;
+    //Clear the month and day
+    stream.read((char*)&newYear,4);
+    stream.read((char*)&newMonth,4);
+    stream.read((char*)&newDay,4);
+    setDate(newDay,newMonth,newYear);
 }

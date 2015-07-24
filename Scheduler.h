@@ -11,6 +11,9 @@
 #include "Student.h"
 #include "Shift.h"
 
+#include <istream>
+#include <ostream>
+
 class Scheduler
 {
 public:
@@ -38,6 +41,10 @@ public:
     unsigned int getStudentNum(void);
 
     std::string toString(void);
+
+    //Fileout
+    void streamOutBinary(std::ostream& stream);
+    void streamInBinary(std::istream& stream);
 private:
     std::string name;
     unsigned int dateNum;           //Number of dates
