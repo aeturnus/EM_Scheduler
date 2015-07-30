@@ -8,10 +8,6 @@
 #include <istream>
 
 
-int Student::MAX_SHIFTS = 14;
-int Student::MIN_SHIFTS = 12;
-
-
 Student::Student()
 {
     shiftCount = 0;
@@ -22,17 +18,7 @@ Student::~Student()
 
 }
 
-void Student::setMinShift(int min)
-{
-    MIN_SHIFTS = min;
-}
-
-void Student::setMaxShift(int max)
-{
-    MAX_SHIFTS = max;
-}
-
-
+/*
 bool Student::assign(void)
 {
     if(shiftCount < MAX_SHIFTS)
@@ -40,12 +26,13 @@ bool Student::assign(void)
     return false;
 }
 
-bool Student::unassign()
+Student::unassign()
 {
     if(shiftCount < 0)
         return false;
     return true;
 }
+ */
 
 void Student::setName(std::string inName)
 {
@@ -66,12 +53,12 @@ unsigned int Student::getID(void)
     return id;
 }
 
-unsigned int Student::getShiftCount()
+int Student::getShiftCount()
 {
     return shiftCount;
 }
 
-void Student::setShiftCount(unsigned int count)
+void Student::setShiftCount(int count)
 {
     shiftCount = count;
 }

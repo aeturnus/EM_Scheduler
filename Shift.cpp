@@ -53,27 +53,13 @@ void Shift::setName(std::string input)
     name = input;
 }
 
-bool Shift::assign(Student *taker)
+void Shift::assign(Student *taker)
 {
-    if(manual)
-    {
-        return false;
-    }
-    if(taker->assign())
-    {
-        assocStudent = taker;
-        return true;
-    }
-    else
-    {
-        std::cout << taker->getName() << " already has " << std::dec << Student::MAX_SHIFTS << " shifts" << std::endl;
-        return false;
-    }
+    assocStudent = taker;
 }
 
 void Shift::unassign()
 {
-    assocStudent->unassign();
     assocStudent = nullptr;
 }
 
@@ -188,6 +174,33 @@ std::string Shift::shiftTimeString(bool hour24)
     return (Date::timeString(startTime,hour24)+"-"+Date::timeString(endTime,hour24));
 }
 
+void Shift::findShiftsWithDate(std::vector<Shift *> *shiftVectorPtr, Date *date, Shift *shiftList, unsigned int shiftNum, bool presorted)
+{
+    shiftVectorPtr->clear();                            //Clear it so we can add more
+    if(!presorted)
+    {
+        for (int i = 0; i < shiftNum; i++) {
+            if (shiftList[i].date() == date) {
+                shiftVectorPtr->push_back(&shiftList[i]);
+            }
+        }
+    }
+    else
+    {
+        bool met = false;   //Determines if it has met the target date
+
+        //Loop breaks when it reaches a date that isn't its own or reaches the end of the list
+        for(int i = 0; !(met && (date != shiftList[i].date())) || !(i<shiftNum); i++)
+        {
+            if(shiftList[i].date() == date)
+            {
+                met = true; //If it has met the target date, set to true
+                shiftVectorPtr->push_back(&shiftList[i]);
+            }
+        }
+    }
+}
+
 
 //File
 /*
@@ -267,13 +280,17 @@ void Shift::streamInBinary(std::istream &stream, Date *dateList, Student *studen
 
     unsigned int index;
     stream.read((char*)&index,4);                              //<Date index>
-    if(index == 0xFFFFFFFF)
+    if(index == 0xFFFFFFFF) {
         assocDate = nullptr;
-    else
+    }
+    else {
         assocDate = &dateList[index];
+    }
     stream.read((char*)&index,4);                              //<Student index>
-    if(index == 0xFFFFFFFF)
+    if(index == 0xFFFFFFFF) {
         assocStudent = nullptr;
-    else
+    }
+    else {
         assocStudent = &studentList[index];
+    }
 }

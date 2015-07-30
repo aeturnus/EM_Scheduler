@@ -16,9 +16,20 @@
 
 class Scheduler
 {
+
+
+
 public:
     Scheduler();
     ~Scheduler();
+
+    enum AssignReturn
+    {
+        SUCCESS,
+        OVERMAX,
+        OVERLAP,
+        CONSEC
+    };
 
     //Init will initialize memory allocations
     //Inputs: start: starting date; end: end date; numshift: number of distinct shifts; shiftNames: array of shift names (size corresponds to numshift), shiftTimes:matrix of int pairs, [i][0] is start time and [i][1] is end time. Max of i should be (numshift-1); numstudents is the number of students; studentNames is an array of student names
@@ -26,7 +37,10 @@ public:
 
     bool autoassign();  //Returns true if successful. Returns false if *all* students exceed their max number of shifts
 
-    bool assign(Shift* shiftPtr, Student* stuPtr);
+    enum AssignReturn assign(Shift* shiftPtr, Student* stuPtr, bool manual);
+
+    void unassign(Shift* shiftPtr, bool manual);
+
     void autoblock(void);
 
     Shift* getShift(Date day, int shiftID);
@@ -39,6 +53,13 @@ public:
     unsigned int getDateNum(void);
     unsigned int getShiftNum(void);
     unsigned int getStudentNum(void);
+    unsigned int getMaxShifts(void);
+    unsigned int getMinShifts(void);
+    unsigned int getMaxConsecutive(void);
+    void setMaxShifts(unsigned int input);
+    void setMinShifts(unsigned int input);
+    void setMaxConsecutive(unsigned int input);
+
 
     std::string toString(void);
 
@@ -56,6 +77,11 @@ private:
     Shift* shiftList;       //Pointer to array of shifts to be allocated
     Student* studentList;   //Pointer to array of students to be allocated
 
+    unsigned int maxShifts;
+    unsigned int minShifts;
+    unsigned int maxConsecutive;
+    bool hasMemoryAllocated;
+
     void updateShiftCount(Student* studentPtr);  //Given a studentID, will update the number of shifts a student has. Call after every assign
 
     bool checkOverlaps(Shift* shiftPtr, Student* studentPtr);    //Returns true if the pointed shift overlaps with any shifts that the pointed student has
@@ -70,6 +96,11 @@ private:
      */
 
     bool checkMinTimeSinceLastShift(Shift* targetShiftPtr, Student* studentPtr, unsigned int minTime = 8);   //Returns true if it has been the minTime since the last shift, from the beginning of the target shift
+
+    /*
+     * SHIFT LIST MUST BE SORTED BY DATE
+     */
+    bool checkMaxConsecutiveDays(Shift* targetShiftPtr, Student* studentPtr);      //Returns true if there is less than the maximum consecutive days
 //    Student* nextEligibleStudent(void); //Returns pointer to the next student that is elligible
 };
 

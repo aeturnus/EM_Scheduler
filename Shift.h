@@ -8,6 +8,7 @@
 #include "Student.h"
 #include "Date.h"
 #include <string>
+#include <vector>
 #include <ostream>
 #include <istream>
 
@@ -26,7 +27,7 @@ public:
 
     //Assigns a student this shift
     //In:: taker:pointer to student who takes the shift
-    bool assign(Student* taker);
+    void assign(Student* taker);
 
     //Unassigns this shift
     void unassign();
@@ -68,6 +69,10 @@ public:
 
     //This method checks if two shifts have overlapping times
     static bool shiftsOverlap(Shift& shift1, Shift& shift2);
+
+    //This method populates a shift pointer vector with all shifts that correspond to a date pointer
+    //Shiftnum is 0 if shiftList is presorted
+    static void findShiftsWithDate(std::vector<Shift*>* shiftVectorPtr, Date* date,Shift* shiftList,unsigned int shiftNum, bool presorted = false);
 
     //A pointer to a date is provided so it can index itself into the date
     void streamOutBinary(std::ostream& stream,Date* dateList, Student *studentList);

@@ -12,7 +12,7 @@
 
 Scheduler::Scheduler()
 {
-
+    hasMemoryAllocated = false;
 }
 
 Scheduler::~Scheduler()
@@ -20,6 +20,7 @@ Scheduler::~Scheduler()
     delete[] shiftList;
     delete[] dateList;
     delete[] studentList;
+    hasMemoryAllocated = false;
 }
 
 void Scheduler::init(std::string inName,Date start, Date end, unsigned int numshift, std::string shiftNames[],unsigned int shiftTimes[][2], unsigned int numstudents, std::string studentNames[])
@@ -30,10 +31,21 @@ void Scheduler::init(std::string inName,Date start, Date end, unsigned int numsh
     shiftNum = dateNum * disShiftNum;
     studentNum = numstudents;
 
+    maxShifts = 14;
+    minShifts = 12;
+    maxConsecutive = 4;
+
+    if(hasMemoryAllocated)
+    {
+        delete[] shiftList;
+        delete[] dateList;
+        delete[] studentList;
+    }
+
     dateList = new Date[dateNum]();                 //Allocate mem for dates
     shiftList = new Shift[shiftNum]();              //Allocate mem for shifts
     studentList = new Student[studentNum]();        //Allocate mem for students. Forgot this earlier. Derp.
-
+    hasMemoryAllocated = true;
     //Initialize the dates
     for(int i = 0; i<dateNum; i++)
     {
@@ -72,6 +84,8 @@ bool Scheduler::autoassign(void)
         //Kills itself on the 78th iteration
 
         //Tries to find an elligible student if it's not manually set or is blocked
+
+        //THE GREAT OVERLAP BUG
         if(!shiftList[i].isManual() && !shiftList[i].isBlocked())
         {
             skip = false;
@@ -98,17 +112,30 @@ bool Scheduler::autoassign(void)
                 return false;
             }
             if(!skip)
-                assign(&shiftList[i],eligStudent);
+                assign(&shiftList[i],eligStudent,false);
         }
-        if(!shiftList[i].isBlocked() && !skip)
-            updateShiftCount(shiftList[i].student());       //Update the count of a student. If it's manually set, it'll update the count for th student that's assigned. Only if not blocked
+        if(!shiftList[i].isBlocked() && !skip && shiftList[i].student() != nullptr)
+            updateShiftCount(shiftList[i].student());       //Update the count of a student. If it's manually set, it'll update the count for the student that's assigned. Only if not blocked
     }
     return true;
 }
 
-bool Scheduler::assign(Shift *shiftPtr, Student *stuPtr)
+Scheduler::AssignReturn Scheduler::assign(Shift* shiftPtr, Student* stuPtr, bool manual)
 {
-    return shiftPtr->assign(stuPtr);
+    if(stuPtr->getShiftCount() < maxShifts)
+    {
+        if(!checkMaxConsecutiveDays(shiftPtr,stuPtr))
+            return CONSEC;
+        if(checkOverlaps(shiftPtr,stuPtr))
+            return OVERLAP;
+        shiftPtr->assign(stuPtr);
+        updateShiftCount(stuPtr);       //Update the count of a student. If it's manually set, it'll update the count for the student that's assigned. Only if not blocked
+        return SUCCESS;
+    }
+    else
+    {
+        return OVERMAX;
+    }
 }
 
 Student* Scheduler::minStudent(std::vector<Student*> *excludevector)
@@ -136,7 +163,7 @@ Student* Scheduler::minStudent(std::vector<Student*> *excludevector)
             }
         }
     }
-    if(studentList[mindex].getShiftCount() >= Student::MAX_SHIFTS)
+    if(studentList[mindex].getShiftCount() >= maxShifts)
     {
         //Return a nullpointer if it fails to work
         return nullptr;
@@ -188,26 +215,35 @@ void Scheduler::autoblock()
     Shift wedMeet;
     for(int i = 0; i<shiftNum; i++)
     {
-        shiftdate = shiftList[i].date();
-        thurMeet.init("",shiftdate,0,14);     //Temporary shift to try overlapping with
-        wedMeet.init("",shiftdate,23,32);     //Temporary shift to try overlapping with
+        if(!(shiftList[i].isManual()))
+        {
+            shiftdate = shiftList[i].date();
+            thurMeet.init("", shiftdate, 0, 14);     //Temporary shift to try overlapping with
+            wedMeet.init("", shiftdate, 23, 32);     //Temporary shift to try overlapping with
 
-        //Thursday
-        if(shiftdate->getNumDayOfWeek()==4)
-            if(shiftdate->weekdayOfMonth()!=3)
-                if(Shift::shiftsOverlap(thurMeet,shiftList[i]))
-                    shiftList[i].block("EM conference 7AM-2PM");
-        //Wednesday
-        if(shiftdate->getNumDayOfWeek()==3)
-            if(shiftdate->weekdayOfMonth()!=3)
-                if(Shift::shiftsOverlap(wedMeet,shiftList[i]))
-                    shiftList[i].block("EM conference 11PM-8AM");
+            //Thursday
+            if (shiftdate->getNumDayOfWeek() == 4)
+                if (shiftdate->weekdayOfMonth() != 3)
+                    if (Shift::shiftsOverlap(thurMeet, shiftList[i]))
+                        shiftList[i].block("EM conference 7AM-2PM");
+            //Wednesday
+            if (shiftdate->getNumDayOfWeek() == 3)
+                if (shiftdate->weekdayOfMonth() != 3)
+                    if (Shift::shiftsOverlap(wedMeet, shiftList[i]))
+                        shiftList[i].block("EM conference 11PM-8AM");
+        }
     }
 
     //Block off night shifts on the last day
     Shift tempShift;
     tempShift.init("temp",shiftList[shiftNum-1].date(),17,24);   //Temporary shift to compare to
-    for(int i = shiftNum - disShiftNum; i < shiftNum; i++)
+    //Cornercase: last day also fulfills the previous autoblocker criteria
+    int i = shiftNum -1;
+    while(shiftList[i].date() == &dateList[dateNum-1])
+    {
+        i--;
+    }
+    for(i++; i < shiftNum; i++)
     {
         if(Shift::shiftsOverlap(shiftList[i],tempShift))
         {
@@ -253,6 +289,36 @@ unsigned int Scheduler::getStudentNum(void)
     return studentNum;
 }
 
+unsigned int Scheduler::getMaxShifts()
+{
+    return maxShifts;
+}
+
+unsigned int Scheduler::getMinShifts()
+{
+    return minShifts;
+}
+
+unsigned int Scheduler::getMaxConsecutive()
+{
+    return maxConsecutive;
+}
+
+void Scheduler::setMaxShifts(unsigned int input)
+{
+    maxShifts = input;
+}
+
+void Scheduler::setMinShifts(unsigned int input)
+{
+    minShifts = input;
+}
+
+void Scheduler::setMaxConsecutive(unsigned int input)
+{
+    maxConsecutive = input;
+}
+
 Date* Scheduler::dates(void)
 {
     return dateList;
@@ -271,6 +337,47 @@ std::string Scheduler::getName(void)
     return name;
 }
 
+bool Scheduler::checkMaxConsecutiveDays(Shift *targetShiftPtr, Student *studentPtr)
+{
+    /*
+     * Logic: go through all the shifts. If the last shift is one day behind the current shift, then it's consecutive
+     * Logic 2: find index of targetShiftPtr, work backwards (cool since it's sorted)
+     */
+    Date* lastDatePtr = nullptr;
+    Date* currDatePtr = nullptr;
+    unsigned int count = 0;
+    int i = 0;
+    for(i = 0; i < shiftNum && (targetShiftPtr != &(shiftList[i])); i++);
+
+    for(lastDatePtr = shiftList[i].date();i>=0;i--)
+    {
+        if(shiftList[i].student() == studentPtr)
+        {
+            //Update the currDatePtr if it's the correct student
+            currDatePtr = shiftList[i].date();
+
+            //As long as the two are not the same
+            if (currDatePtr != lastDatePtr) {
+                if (Date::daysBetween(*currDatePtr, *lastDatePtr, false) == 1)
+                {
+                    //If there is only one day between the two dates, it's consecutive
+                    count++;
+                    lastDatePtr = currDatePtr;
+                    if(count > maxConsecutive)
+                        return false;       //If the count has exceeded maxCon, return false
+                }
+                else
+                {
+                    return true;            //It reaches here if there is a date that is more than 2. Time resets
+                }
+            }
+        }
+    }
+    if(count > maxConsecutive)
+        return false;       //If there are more consecutive
+    return true;
+
+}
 
 //Files
 /*
@@ -280,6 +387,9 @@ std::string Scheduler::getName(void)
  * ??B: Students
  * 12B: Start Date
  * 12B: End Date
+ *  4B: Max shifts
+ *  4B: Min Shifts
+ *  4B: Max consec
  *  4B: # of shifts
  * ??B: Shifts
  */
@@ -302,21 +412,27 @@ void Scheduler::streamOutBinary(std::ostream &stream)
     start.streamOutBinary(stream);                                  //<Start date>
     end.streamOutBinary(stream);                                    //<End date>
 
+    stream.write((char*)&maxShifts,4);                              //<Max shifts>
+    stream.write((char*)&minShifts,4);                              //<Min shifts>
+    stream.write((char*)&maxConsecutive,4);                         //<Max consecutive>
+
+
     stream.write((char*)&shiftNum,4);                               //<# of shifts>
     for(int i = 0; i < shiftNum; i++)
     {
         shiftList[i].streamOutBinary(stream,dateList,studentList);  //<Shifts>
     }
-
-
 }
 
 void Scheduler::streamInBinary(std::istream &stream)
 {
     //Free what it already has
-    delete[] shiftList;
-    delete[] dateList;
-    delete[] studentList;
+    if(hasMemoryAllocated)
+    {
+        delete[] shiftList;
+        delete[] dateList;
+        delete[] studentList;
+    }
     //
 
     unsigned int length;
@@ -346,6 +462,10 @@ void Scheduler::streamInBinary(std::istream &stream)
         dateList[i] = start;
     }
 
+    stream.read((char*)&maxShifts,4);                                                       //<Max shifts>
+    stream.read((char*)&minShifts,4);                                                       //<Min shifts>
+    stream.read((char*)&maxConsecutive,4);                                                  //<Max consecutive>
+
     stream.read((char*)&shiftNum,4);                                                        //<# of shifts>
     shiftList = new Shift[shiftNum]();
     for(int i = 0; i<shiftNum; i++)
@@ -355,4 +475,6 @@ void Scheduler::streamInBinary(std::istream &stream)
     }
 
     disShiftNum = 6;    //Basically worthless after the initialization
+
+    hasMemoryAllocated = true;
 }

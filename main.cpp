@@ -73,7 +73,8 @@ void inline newcfg(Scheduler& schedule)
     }
 
 
-    Student::setMaxShift(50);
+    //Student::setMaxShift(50);
+    schedule.setMaxShifts(50);
 
 
     //Hard coded 6 students
@@ -315,7 +316,8 @@ int main()
     Date dateStart,dateEnd;
     dateStart.setDate(22,Date::SEP,2014);
     dateEnd.setDate(17,Date::OCT,2014);
-    Student::setMaxShift(50);
+    scheduler.setMaxShifts(50);
+    scheduler.setMinShifts(12);
     string shiftnames[5] = {"Shift","Shift","Shift","Crash","Crash"};
     unsigned int shifttimes[5][2] = {{7,16},{15,24},{23,32},{7,16},{15,24}};
     string studentnames[6] = {"A","B","C","D","E","F"};
@@ -349,12 +351,14 @@ int main()
 
 
     ofstream fileo;
-    fileo.open("C:/temp/schedule.schd");
+//    fileo.open("C:/temp/schedule.schd");
+    fileo.open("C:/temp/schedule.schd", ios_base::out |ios_base::binary);
     scheduler.streamOutBinary(fileo);
     fileo.close();
 
     ifstream filei;
-    filei.open("C:/temp/schedule.schd");
+    filei.open("C:/temp/schedule.schd", ios_base::in |ios_base::binary);
+//    filei.open("C:/temp/schedule.schd");
     scheduler.streamInBinary(filei);
     filei.close();
 
@@ -362,11 +366,20 @@ int main()
     cout<<"Load complete"<<endl;
 
 
-    fileo.open("C:/temp/schedule-copy.schd");
+    fileo.open("C:/temp/schedule-copy.schd", ios_base::out |ios_base::binary);
+//    fileo.open("C:/temp/schedule-copy.schd");
     scheduler.streamOutBinary(fileo);
     fileo.close();
 
     cout<<"Export 2 complete"<<endl;
+
+    vector<Shift*> shiftvector;
+
+    Shift::findShiftsWithDate(&shiftvector,&scheduler.dates()[0],scheduler.shifts(),scheduler.getShiftNum());
+    for(int i =0; i<shiftvector.size(); i++)
+    {
+        cout<<shiftvector[i]->toString()<<endl;
+    }
 
     cin.get();
 
