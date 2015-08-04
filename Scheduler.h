@@ -28,7 +28,9 @@ public:
         SUCCESS,
         OVERMAX,
         OVERLAP,
-        CONSEC
+        MINTIME,
+        CONSEC,
+        ISNULL
     };
 
     //Init will initialize memory allocations
@@ -59,9 +61,12 @@ public:
     void setMaxShifts(unsigned int input);
     void setMinShifts(unsigned int input);
     void setMaxConsecutive(unsigned int input);
+    void setName(std::string inName);
 
 
     std::string toString(void);
+
+    int indexOfShift(Shift* shiftPtr);
 
     //Fileout
     void streamOutBinary(std::ostream& stream);
