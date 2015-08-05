@@ -377,7 +377,7 @@ bool Scheduler::checkMinTimeSinceLastShift(Shift *targetShiftPtr, Student *stude
     {
         if(shiftList[i].student() == studentPtr)
         {
-            if(&shiftList[i] == targetShiftPtr)
+            if(&shiftList[i] != targetShiftPtr)
             {
                 tempShift = shiftList[i];
                 tempShift.setTime(tempShift.getStart() - minTime,tempShift.getEnd() + minTime);
