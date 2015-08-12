@@ -113,6 +113,11 @@ int Shift::getEnd(void)
     return endTime;
 }
 
+void Shift::setBlockReason(std::string reason)
+{
+    blockReason = reason;
+}
+
 std::string Shift::getBlockReason(void)
 {
     return blockReason;

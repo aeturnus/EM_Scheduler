@@ -60,6 +60,7 @@ public:
     int getStart(void);
     int getEnd(void);
 
+    void setBlockReason(std::string reason);
     std::string getBlockReason(void);
     std::string getName(void);
 
