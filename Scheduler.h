@@ -39,11 +39,12 @@ public:
 
     bool autoassign();  //Returns true if successful. Returns false if *all* students exceed their max number of shifts
 
-    enum AssignReturn assign(Shift* shiftPtr, Student* stuPtr, bool manual);
-
+    enum AssignReturn assign(Shift* shiftPtr, Student* stuPtr, bool manual, bool override = false);
     void unassign(Shift* shiftPtr, bool manual);
 
     void autoblock(void);
+
+    bool resolve(Shift* shiftPtr,std::vector<Student*>* excludevector);
 
     Shift* getShift(Date day, int shiftID);
 
@@ -107,6 +108,8 @@ private:
      */
     bool checkMaxConsecutiveDays(Shift* targetShiftPtr, Student* studentPtr);      //Returns true if there is less than the maximum consecutive days
 //    Student* nextEligibleStudent(void); //Returns pointer to the next student that is elligible
+
+    bool studentInVector(Student* stuPtr, std::vector<Student*>* vector);
 };
 
 

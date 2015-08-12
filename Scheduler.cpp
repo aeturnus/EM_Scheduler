@@ -158,6 +158,11 @@ bool Scheduler::autoassign(void)
                 eligStudent = minStudent(&excludevector);
                 state = assign(&shiftList[i],eligStudent,false);
             }
+            excludevector.clear();
+            if(state != SUCCESS)
+            {
+                resolve(&shiftList[i],&excludevector);
+            }
         }
     }
     return true;
@@ -165,19 +170,26 @@ bool Scheduler::autoassign(void)
 
 }
 
-Scheduler::AssignReturn Scheduler::assign(Shift* shiftPtr, Student* stuPtr, bool manual)
+Scheduler::AssignReturn Scheduler::assign(Shift* shiftPtr, Student* stuPtr, bool manual, bool override)
 {
+    Student* oldstudent;
+    oldstudent = shiftPtr->student();
     if(stuPtr == nullptr)
         return ISNULL;
     if(stuPtr->getShiftCount() < maxShifts)
     {
-        if(!checkMaxConsecutiveDays(shiftPtr,stuPtr))
-            return CONSEC;
         if(checkOverlaps(shiftPtr,stuPtr))
             return OVERLAP;
-        if(!checkMinTimeSinceLastShift(shiftPtr,stuPtr,8))
-            return MINTIME;
+        if(!override)   //Override can ignore these facts
+        {
+            if(!checkMaxConsecutiveDays(shiftPtr,stuPtr))
+                return CONSEC;
+            if(!checkMinTimeSinceLastShift(shiftPtr,stuPtr,8))
+                return MINTIME;
+        }
         shiftPtr->assign(stuPtr);
+        if(oldstudent != nullptr)
+            oldstudent->setShiftCount(oldstudent->getShiftCount()-1);   //Update the old student that was there
         if(manual)
             shiftPtr->setManual(manual);
         updateShiftCount(stuPtr);       //Update the count of a student. If it's manually set, it'll update the count for the student that's assigned. Only if not blocked
@@ -198,6 +210,111 @@ void Scheduler::unassign(Shift *shiftPtr, bool manual)
     if(manual)
         shiftPtr->setManual(manual);
     updateShiftCount(student);
+}
+
+bool Scheduler::resolve(Shift *shiftPtr,std::vector<Student*>* excludevector)
+{
+    //Recursion break case
+    if(excludevector->size() >= studentNum)
+        return false;
+
+    AssignReturn resultList[studentNum];    //Make an array of assignment returns for each student
+    for(int i = 0 ; i < studentNum; i++)
+    {
+        if(!studentInVector(&studentList[i],excludevector))
+        {
+            resultList[i] = assign(shiftPtr,&studentList[i],false);
+            if(resultList[i] == SUCCESS)
+                return false;                         //None of them should've been a success. Just handle this corner case
+        }
+        else
+        {
+            //If student not in vector, handle
+            resultList[i] = ISNULL;
+        }
+    }
+    int tryindex = -1;       //Index of student to try to resolve
+    for(int i = 0 ; i < studentNum; i++)
+    {
+        //Try for mintime first
+        if(resultList[i] == MINTIME)
+        {
+            tryindex = i;
+        }
+    }
+    if(tryindex == -1)
+    {
+        //Try consec
+        for(int i = 0; i < studentNum; i++)
+        {
+            if(resultList[i] == CONSEC)
+            {
+                tryindex = i;
+            }
+        }
+    }
+    if(tryindex == -1)
+    {
+        //Try same time
+        for(int i = 0; i < studentNum; i++)
+        {
+            if(resultList[i] == OVERLAP)
+            {
+                tryindex = i;
+            }
+        }
+    }
+    if(tryindex == -1)
+        return false;
+
+    //We now have an index of student to try: looks backwards
+    Student* stuPtr = &studentList[tryindex];
+    int shiftDex = indexOfShift(shiftPtr);  //Get a starting index in the list
+    for (int i = shiftDex; i >= 0; i--)
+    {
+        if(shiftList[i].student() == stuPtr)
+        {
+            shiftDex = i;   //Shiftdex is now the index of the shift to replace
+            break;
+        }
+    }
+    AssignReturn state = ISNULL;
+    //Try assigning another student to the shift
+    for(int i=0; i < studentNum && state!=SUCCESS; i++)
+    {
+        if(&studentList[i] != stuPtr)
+        {
+            state = assign(&shiftList[shiftDex],&studentList[i],false);     //Find a student to assign the previous shift
+        }
+    }
+    if(state != SUCCESS)
+    {
+        //Comes up negative
+        unassign(&shiftList[shiftDex],false);
+    }
+
+
+    //Assign the target shift with the targeted student
+    state = assign(shiftPtr,&studentList[tryindex],false);
+    if(state != SUCCESS)
+    {
+        //If it didn't work, try again
+        excludevector->push_back(&studentList[tryindex]);
+        return resolve(shiftPtr,excludevector);
+    }
+
+    return true;
+
+}
+
+bool Scheduler::studentInVector(Student *stuPtr, std::vector<Student *>* vector)
+{
+    for(int i = vector->size()-1; i >= 0; i--)
+    {
+        if(stuPtr == (*vector)[i])
+            return true;
+    }
+    return false;
 }
 
 Student* Scheduler::minStudent(std::vector<Student*> *excludevector)
@@ -531,7 +648,7 @@ bool Scheduler::checkMaxConsecutiveDays(Shift *targetShiftPtr, Student *studentP
     index = i;
 
 
-    for(lastDatePtr = shiftList[i].date();i>=0;i--)
+    for(i = index,lastDatePtr = shiftList[i].date();i>=0;i--)
     {
         if(shiftList[i].student() == studentPtr)
         {
@@ -557,7 +674,7 @@ bool Scheduler::checkMaxConsecutiveDays(Shift *targetShiftPtr, Student *studentP
     }
 
     //Lookforward
-    for(lastDatePtr = shiftList[i].date(); i < shiftNum; i++)
+    for(i = index,lastDatePtr = shiftList[i].date(); i < shiftNum; i++)
     {
         if(shiftList[i].student() == studentPtr)
         {

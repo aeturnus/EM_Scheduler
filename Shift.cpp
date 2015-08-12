@@ -95,7 +95,7 @@ Date* Shift::date(void)
 }
 
 
-bool Shift::setTime(unsigned int start, unsigned int end)
+bool Shift::setTime(int start, int end)
 {
     if(start>=end)
         return false;
@@ -103,12 +103,12 @@ bool Shift::setTime(unsigned int start, unsigned int end)
     endTime = end;
 }
 
-unsigned int Shift::getStart(void)
+int Shift::getStart(void)
 {
     return startTime;
 }
 
-unsigned int Shift::getEnd(void)
+int Shift::getEnd(void)
 {
     return endTime;
 }
@@ -137,10 +137,10 @@ bool Shift::shiftsOverlap(Shift &shift1, Shift &shift2)
     //Logic: use doubles to hold fractional epoch days
     Date date1 = *(shift1.date());
     Date date2 = *(shift2.date());
-    unsigned int start1 = shift1.getStart();
-    unsigned int end1 = shift1.getEnd();
-    unsigned int start2 = shift2.getStart();
-    unsigned int end2 = shift2.getEnd();
+    int start1 = shift1.getStart();
+    int end1 = shift1.getEnd();
+    int start2 = shift2.getStart();
+    int end2 = shift2.getEnd();
 
     //These doubles will hold days from the epoch, plus fractional parts of a day
     double st1 = (double)Date::daysFromEpoch(date1) + (((double)start1)/(24.00));

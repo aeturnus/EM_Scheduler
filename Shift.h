@@ -56,9 +56,9 @@ public:
     std::string shiftTimeString(bool hour24 = false);
 
     //Set the shift's time. Will return true if it works. Will return false if it fails
-    bool setTime(unsigned int start, unsigned int end);
-    unsigned int getStart(void);
-    unsigned int getEnd(void);
+    bool setTime(int start, int end);
+    int getStart(void);
+    int getEnd(void);
 
     std::string getBlockReason(void);
     std::string getName(void);
@@ -86,8 +86,8 @@ private:
     Student* assocStudent;      //Pointer to the student who has this shift. Equals nullptr if not taken
     Date* assocDate;            //Pointer to the date that it is attached to
 
-    unsigned int startTime;     //The beginning time 0 is 12AM
-    unsigned int endTime;       //The end time. Can extend to the next day if at least 24
+    int startTime;     //The beginning time 0 is 12AM
+    int endTime;       //The end time. Can extend to the next day if at least 24
 };
 
 

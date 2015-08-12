@@ -26,20 +26,23 @@ void scheduleToXLS(Scheduler& schedule, workbook& wb)
     format->SetWrap(true);
     format->SetVAlign(VALIGN_TOP);
 
+    unsigned int rowbase = 0;
+    sh->label(0,0,schedule.getName());
 
     //Label them
+    rowbase++;
     sh->defaultColwidth(25);
-    sh->label(0,0,"Sunday");
-    sh->label(0,1,"Monday");
-    sh->label(0,2,"Tuesday");
-    sh->label(0,3,"Wednesday");
-    sh->label(0,4,"Thursday");
-    sh->label(0,5,"Friday");
-    sh->label(0,6,"Saturday");
+    sh->label(rowbase,0,"Sunday");
+    sh->label(rowbase,1,"Monday");
+    sh->label(rowbase,2,"Tuesday");
+    sh->label(rowbase,3,"Wednesday");
+    sh->label(rowbase,4,"Thursday");
+    sh->label(rowbase,5,"Friday");
+    sh->label(rowbase,6,"Saturday");
 
 
     //Do the dates
-    unsigned int rowbase = 1;
+    rowbase++;
     unsigned int row = 0;
     unsigned int col;
     Date* datePtr = nullptr;
