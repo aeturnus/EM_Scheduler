@@ -26,19 +26,36 @@ void scheduleToXLS(Scheduler& schedule, workbook& wb)
     format->SetWrap(true);
     format->SetVAlign(VALIGN_TOP);
 
+    xf_t* boxformat = wb.xformat();
+    boxformat->SetWrap(true);
+    boxformat->SetVAlign(VALIGN_TOP);
+    boxformat->SetBorderStyle(BORDER_LEFT,BORDER_THIN);
+    boxformat->SetBorderStyle(BORDER_BOTTOM,BORDER_THIN);
+    boxformat->SetBorderStyle(BORDER_TOP,BORDER_THIN);
+    boxformat->SetBorderStyle(BORDER_RIGHT,BORDER_THIN);
+
+
     unsigned int rowbase = 0;
     sh->label(0,0,schedule.getName());
+
+    //Put the start and end date
+    rowbase++;
+    stringstream sstream;
+    sstream<<"Student EM Schedule: "<<schedule.dates()[0].toString()<<" - "<<schedule.dates()[schedule.getDateNum()-1].toString()<<endl;
+    sh->label(rowbase,0,sstream.str());
+
+    sstream.str(std::string());
 
     //Label them
     rowbase++;
     sh->defaultColwidth(25);
-    sh->label(rowbase,0,"Sunday");
-    sh->label(rowbase,1,"Monday");
-    sh->label(rowbase,2,"Tuesday");
-    sh->label(rowbase,3,"Wednesday");
-    sh->label(rowbase,4,"Thursday");
-    sh->label(rowbase,5,"Friday");
-    sh->label(rowbase,6,"Saturday");
+    sh->label(rowbase,0,"Sunday",boxformat);
+    sh->label(rowbase,1,"Monday",boxformat);
+    sh->label(rowbase,2,"Tuesday",boxformat);
+    sh->label(rowbase,3,"Wednesday",boxformat);
+    sh->label(rowbase,4,"Thursday",boxformat);
+    sh->label(rowbase,5,"Friday",boxformat);
+    sh->label(rowbase,6,"Saturday",boxformat);
 
 
     //Do the dates
@@ -47,7 +64,6 @@ void scheduleToXLS(Scheduler& schedule, workbook& wb)
     unsigned int col;
     Date* datePtr = nullptr;
     Shift* shiftPtr;
-    stringstream sstream;
 
     for(int i = 0; i <(int)schedule.getShiftNum(); i++)
     {
@@ -57,7 +73,7 @@ void scheduleToXLS(Scheduler& schedule, workbook& wb)
             //Actually put the string in
             if(datePtr != nullptr)
             {
-                sh->label(row+rowbase, col, sstream.str(), format);   //Skip this if it's the first date
+                sh->label(row+rowbase, col, sstream.str(), boxformat);   //Skip this if it's the first date
                 if (datePtr->getNumDayOfWeek() == 6)
                     row++;
             }
@@ -92,7 +108,7 @@ void scheduleToXLS(Scheduler& schedule, workbook& wb)
         //Special last case
         if(i == (int)schedule.getShiftNum() - 1)
         {
-            sh->label(row+rowbase, col, sstream.str(), format);   //If it's the last shift, make sure to write to the sheet
+            sh->label(row+rowbase, col, sstream.str(), boxformat);   //If it's the last shift, make sure to write to the sheet
             sstream.clear();
 
         }
