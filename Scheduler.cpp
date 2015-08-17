@@ -451,12 +451,12 @@ void Scheduler::autoblock()
             if (shiftdate->getNumDayOfWeek() == 4)
                 if (shiftdate->weekdayOfMonth() != 3)
                     if (Shift::shiftsOverlap(thurMeet, shiftList[i]))
-                        shiftList[i].block("EM conference 7AM-2PM");
+                        shiftList[i].block("EM conference");
             //Wednesday
             if (shiftdate->getNumDayOfWeek() == 3)
                 if (shiftdate->weekdayOfMonth() != 3)
                     if (Shift::shiftsOverlap(wedMeet, shiftList[i]))
-                        shiftList[i].block("EM conference 11PM-8AM");
+                        shiftList[i].block("EM conference");
         }
     }
 
